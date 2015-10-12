@@ -14,7 +14,7 @@ This again assumes that the unique token for the Sumo Logic HTTP collector endpo
 $ docker run -e DEBUG=1 \
     -v /var/run/docker.sock:/tmp/docker.sock \
     -e LOGSPOUT=ignore \
-    raychaser/logspout-http:latest \
+    goodeggs/logspout-http:latest \
     https://collectors.sumologic.com?http.path=/receiver/v1/http/$SUMO_HTTP_TOKEN\&http.gzip=true
 ```
 
