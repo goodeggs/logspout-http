@@ -4,10 +4,10 @@ VERSION=$(shell cat VERSION)
 dev:
 	rm -rf ./tmp
 	mkdir -p ./tmp/src
-	cp -r ./vendor/src tmp/
+	cp -R ./vendor/src tmp/
 	mkdir -p ./tmp/src/github.com/goodeggs/logspout-http/http
-	cp -r ./modules.go ./tmp/src/github.com/goodeggs/logspout-http
-	cp -r ./http/* ./tmp/src/github.com/goodeggs/logspout-http/http
+	cp -R ./modules.go ./tmp/src/github.com/goodeggs/logspout-http
+	cp -R ./http/* ./tmp/src/github.com/goodeggs/logspout-http/http
 	cp ./tmp/src/github.com/goodeggs/logspout-http/modules.go ./tmp/src/github.com/gliderlabs/logspout
 	@docker build -f Dockerfile.dev -t $(NAME):dev .
 	@docker run --rm \
