@@ -101,7 +101,7 @@ type HTTPAdapter struct {
 	totalMessageCount int
 	bufferMutex       sync.Mutex
 	useGzip           bool
-	crash			  bool
+	crash             bool
 }
 
 // NewHTTPAdapter creates an HTTPAdapter
@@ -234,22 +234,45 @@ func (a *HTTPAdapter) flushHttp(reason string) {
 	// Create JSON representation of all messages
 	messages := make([]string, 0, len(buffer))
 	for i := range buffer {
-		m := buffer[i]
-		httpMessage := HTTPMessage{
-			Message:  m.Data,
-			Time:     m.Time.Format(time.RFC3339),
-			Source:   m.Source,
-			Name:     m.Container.Name,
-			ID:       m.Container.ID,
-			Image:    m.Container.Config.Image,
-			Hostname: m.Container.Config.Hostname,
+		input := buffer[i]
+		var message interface{}
+
+		// attempt to JSON decode the message
+		validJSON := true
+		err := json.Unmarshal([]byte(input.Data), &message)
+		if err != nil {
+			validJSON = false
+			json.Unmarshal([]byte("{}"), &message)
 		}
-		message, err := json.Marshal(httpMessage)
+
+		messageIfc := message.(map[string]interface{})
+
+		// include the raw message if it wasn't valid JSON
+		if !validJSON {
+			messageIfc["msg"] = input.Data
+		}
+
+		// ensure we always have a timestamp
+		if _, ok := messageIfc["timestamp"]; !ok {
+			messageIfc["timestamp"] = input.Time.Format(time.RFC3339)
+		}
+
+		// include the logspout data
+		messageIfc["logspout"] = LogspoutData{
+			Time:     input.Time.Format(time.RFC3339),
+			Source:   input.Source,
+			Name:     input.Container.Name,
+			ID:       input.Container.ID,
+			Image:    input.Container.Config.Image,
+			Hostname: input.Container.Config.Hostname,
+		}
+
+		messageBuf, err := json.Marshal(message)
 		if err != nil {
 			debug("flushHttp - Error encoding JSON: ", err)
 			continue
 		}
-		messages = append(messages, string(message))
+		messages = append(messages, string(messageBuf))
 	}
 
 	// Glue all the JSON representations together into one payload to send
@@ -326,9 +349,8 @@ func createRequest(url string, useGzip bool, payload string) *http.Request {
 	return request
 }
 
-// HTTPMessage is a simple JSON representation of the log message.
-type HTTPMessage struct {
-	Message  string `json:"message"`
+// LogspoutData is a simple JSON representation of the logspout message data.
+type LogspoutData struct {
 	Time     string `json:"time"`
 	Source   string `json:"source"`
 	Name     string `json:"docker_name"`
