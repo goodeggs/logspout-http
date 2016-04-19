@@ -23,7 +23,9 @@ $ docker run -e DEBUG=1 \
 
 Parameters are added a querystring parameters to the `sumo://...` URI above, eg `sumo://my-token/?host=edge`. The following parameters are available:
 
+`host` overrides the `_sourceHost` in Sumo. The default is to let Sumo choose (usually the public IP of the host).
 
+`name` overrides the `_sourceName` in Sumo. The default is to let Sumo choose (usually "Http Input").
 
 `http.buffer.capacity` controls the size of a buffer used to accumulate logs. The default capacity of the buffer is 100 logs.
 

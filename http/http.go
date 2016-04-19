@@ -101,6 +101,7 @@ type HTTPAdapter struct {
 	bufferMutex       sync.Mutex
 	useGzip           bool
 	crash             bool
+	headers           map[string]string
 }
 
 // NewHTTPAdapter creates an HTTPAdapter
@@ -165,6 +166,14 @@ func NewHTTPAdapter(route *router.Route) (router.LogAdapter, error) {
 		debug("http: don't crash, keep going")
 	}
 
+	headers := make(map[string]string)
+	if host := getStringParameter(route.Options, "host", ""); host != "" {
+		headers["X-Sumo-Host"] = host
+	}
+	if name := getStringParameter(route.Options, "name", ""); name != "" {
+		headers["X-Sumo-Name"] = name
+	}
+
 	// Make the HTTP adapter
 	return &HTTPAdapter{
 		route:    route,
@@ -176,6 +185,7 @@ func NewHTTPAdapter(route *router.Route) (router.LogAdapter, error) {
 		timeout:  timeout,
 		useGzip:  useGzip,
 		crash:    crash,
+		headers:  headers,
 	}, nil
 }
 
@@ -276,7 +286,7 @@ func (a *HTTPAdapter) flushHttp(reason string) {
 	go func() {
 
 		// Create the request and send it on its way
-		request := createRequest(a.url, a.useGzip, payload)
+		request := createRequest(a.url, a.useGzip, payload, a.headers)
 		start := time.Now()
 		response, err := a.client.Do(request)
 		if err != nil {
@@ -310,7 +320,7 @@ func (a *HTTPAdapter) flushHttp(reason string) {
 }
 
 // Create the request based on whether GZIP compression is to be used
-func createRequest(url string, useGzip bool, payload string) *http.Request {
+func createRequest(url string, useGzip bool, payload string, headers map[string]string) *http.Request {
 	var request *http.Request
 	if useGzip {
 		gzipBuffer := new(bytes.Buffer)
@@ -340,6 +350,9 @@ func createRequest(url string, useGzip bool, payload string) *http.Request {
 			// TODO @raychaser - now what?
 			die("", "http: error on http.NewRequest:", err, url)
 		}
+	}
+	for k, v := range headers {
+		request.Header.Set(k, v)
 	}
 	return request
 }
