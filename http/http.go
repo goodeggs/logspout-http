@@ -22,8 +22,7 @@ import (
 )
 
 func init() {
-	router.AdapterFactories.Register(NewHTTPAdapter, "http")
-	router.AdapterFactories.Register(NewHTTPAdapter, "https")
+	router.AdapterFactories.Register(NewHTTPAdapter, "sumo")
 }
 
 func debug(v ...interface{}) {
@@ -106,11 +105,7 @@ type HTTPAdapter struct {
 
 // NewHTTPAdapter creates an HTTPAdapter
 func NewHTTPAdapter(route *router.Route) (router.LogAdapter, error) {
-
-	// Figure out the URI and create the HTTP client
-	defaultPath := ""
-	path := getStringParameter(route.Options, "http.path", defaultPath)
-	endpointUrl := fmt.Sprintf("%s://%s%s", route.Adapter, route.Address, path)
+	endpointUrl := fmt.Sprintf("https://collectors.sumologic.com/receiver/v1/http/%s", route.Address)
 	debug("http: url:", endpointUrl)
 	transport := &http.Transport{}
 	transport.Dial = dial
@@ -156,7 +151,7 @@ func NewHTTPAdapter(route *router.Route) (router.LogAdapter, error) {
 
 	// Figure out whether we should use GZIP compression
 	useGzip := false
-	useGZipString := getStringParameter(route.Options, "http.gzip", "false")
+	useGZipString := getStringParameter(route.Options, "http.gzip", "true")
 	if useGZipString == "true" {
 		useGzip = true
 		debug("http: gzip compression enabled")
