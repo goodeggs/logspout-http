@@ -21,6 +21,9 @@ import (
 	"github.com/gliderlabs/logspout/router"
 )
 
+// RFC3339 with millisecond resolution
+const TIME_FORMAT_RFC3339_MS = "2006-01-02T15:04:05.000Z07:00"
+
 func init() {
 	router.AdapterFactories.Register(NewHTTPAdapter, "sumo")
 }
@@ -258,13 +261,13 @@ func (a *HTTPAdapter) flushHttp(reason string) {
 		}
 
 		// ensure we always have a timestamp
-		if _, ok := messageIfc["timestamp"]; !ok {
-			messageIfc["timestamp"] = input.Time.Format(time.RFC3339)
+		if _, ok := messageIfc["time"]; !ok {
+			messageIfc["time"] = input.Time.Format(TIME_FORMAT_RFC3339_MS)
 		}
 
 		// include the logspout data
 		messageIfc["logspout"] = LogspoutData{
-			Time:     input.Time.Format(time.RFC3339),
+			Time:     input.Time.Format(TIME_FORMAT_RFC3339_MS),
 			Source:   input.Source,
 			Name:     input.Container.Name,
 			ID:       input.Container.ID,
