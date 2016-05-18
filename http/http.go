@@ -24,7 +24,10 @@ import (
 // RFC3339 with millisecond resolution
 const TIME_FORMAT_RFC3339_MS = "2006-01-02T15:04:05.000Z07:00"
 
+var dialTimeout time.Duration
+
 func init() {
+	dialTimeout, _ = time.ParseDuration("30s")
 	router.AdapterFactories.Register(NewHTTPAdapter, "sumo")
 }
 
@@ -82,7 +85,7 @@ func getDurationParameter(
 }
 
 func dial(netw, addr string) (net.Conn, error) {
-	dial, err := net.Dial(netw, addr)
+	dial, err := net.DialTimeout(netw, addr, dialTimeout)
 	if err != nil {
 		debug("http: new dial", dial, err, netw, addr)
 	} else {
