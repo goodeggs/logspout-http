@@ -263,11 +263,6 @@ func (a *HTTPAdapter) flushHttp(reason string) {
 			messageIfc["msg"] = input.Data
 		}
 
-		// ensure we always have a timestamp
-		if _, ok := messageIfc["time"]; !ok {
-			messageIfc["time"] = input.Time.Format(TIME_FORMAT_RFC3339_MS)
-		}
-
 		// include the logspout data
 		messageIfc["logspout"] = LogspoutData{
 			Time:     input.Time.Format(TIME_FORMAT_RFC3339_MS),
@@ -278,12 +273,25 @@ func (a *HTTPAdapter) flushHttp(reason string) {
 			Hostname: input.Container.Config.Hostname,
 		}
 
+		// save off the message timestamp, preferring the message's
+		// own `time` property if set
+		timestamp := input.Time.Format(TIME_FORMAT_RFC3339_MS)
+		if t, ok := messageIfc["time"]; ok {
+			timestamp = t.(string)
+		}
+		delete(messageIfc, "time")
+
 		messageBuf, err := json.Marshal(message)
 		if err != nil {
 			debug("flushHttp - Error encoding JSON: ", err)
 			continue
 		}
-		messages = append(messages, string(messageBuf))
+
+		// insert `time` at the head, since Go sorts keys and SumoLogic will use
+		// the first string that looks like a timestamp.
+		messageStr := "{\"time\":\"" + timestamp + "\"," + string(messageBuf[1:])
+
+		messages = append(messages, messageStr)
 	}
 
 	// Glue all the JSON representations together into one payload to send
